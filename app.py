@@ -1,5 +1,6 @@
 import streamlit as st 
 import pandas as pd 
+import base64
 from streamlit_option_menu import option_menu
 from st_aggrid import AgGrid, GridUpdateMode
 from st_aggrid.grid_options_builder import GridOptionsBuilder
@@ -7,6 +8,7 @@ from st_aggrid.grid_options_builder import GridOptionsBuilder
 # Retrieve the maximum upload size from the configuration file
 max_upload_size_mb = st.get_option("server.maxUploadSize")
 
+##  nav bar ideas 
 
 selected = option_menu(
         menu_title=None,
@@ -24,6 +26,7 @@ styles={
     },
 )
 
+## function to the file uploader that i want only 6 files with only 10 mb 
 def user_input_features():
 
     accept_file_types = ['csv', 'xls', 'xlsx','ods','pdf']
@@ -50,8 +53,13 @@ def user_input_features():
 
     return uploaded_file_names
 
+
+## statistical analysis after the files are merged and these are called upon / saved 
 if selected == "Statistics":
         st.title(f"you have chosen to do {selected}")
+
+## merge nav bar code 
+
 elif selected == "Merge":
         uploaded_file_names = user_input_features()
         if uploaded_file_names:
@@ -77,6 +85,23 @@ elif selected == "Merge":
                       st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
                  else:
                     merge_button = st.button("Merge files")
+                    if merge_button:
+                    # Perform merge
+                     merged_df = pd.concat([pd.read_excel(file) for file in selected_row['Filename']], ignore_index=True)
+
+                    # Display merged DataFrame
+                     st.write("## Merged Data:")
+                     st.dataframe(merged_df)
+
+                    # Provide option to download the merged file
+                     st.write("## Download Merged File:")
+                     csv = merged_df.to_csv(index=False).encode()
+                     b64 = base64.b64encode(csv.encode()).decode()
+                     href = f'<a href="data:file/csv;base64,{b64}" download="merged_file.csv">Download CSV File</a>'
+                     st.markdown(href, unsafe_allow_html=True)
+
+## xlsv merge files nav bar
+
 elif selected == "Ex-Merge":
         uploaded_file_names = user_input_features()
         if uploaded_file_names:
@@ -102,6 +127,20 @@ elif selected == "Ex-Merge":
                       st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
                  else:
                     merge_button = st.button("Merge files")
+                    if merge_button:
+                    # Perform merge
+                     merged_df = pd.concat([pd.read_excel(file) for file in selected_row['Filename']], ignore_index=True)
+
+                    # Display merged DataFrame
+                     st.write("## Merged Data:")
+                     st.dataframe(merged_df)
+
+                    # Provide option to download the merged file
+                     st.write("## Download Merged File:")
+                     csv = merged_df.to_csv(index=False)
+                     b64 = base64.b64encode(csv.encode()).decode()
+                     href = f'<a href="data:file/csv;base64,{b64}" download="merged_file.csv">Download CSV File</a>'
+                     st.markdown(href, unsafe_allow_html=True)
                 
              
 
