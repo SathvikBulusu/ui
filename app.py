@@ -10,8 +10,8 @@ max_upload_size_mb = st.get_option("server.maxUploadSize")
 
 selected = option_menu(
         menu_title=None,
-        options=["Merge","Statistics"],
-        icons=["clipboard-data-fill","bar-chart-fill","envelope"],
+        options=["Merge","Ex-Merge","Statistics"],
+        icons=["clipboard-data-fill","body-text","bar-chart-fill"],
         menu_icon="cast",
         default_index=0,
         orientation="horizontal",
@@ -73,6 +73,31 @@ elif selected == "Merge":
             else:
                  uploaded_file_names = set (files_df['File type'])
                  unsupported_types=set(files_df['File type']).intersection({'xls','ods','xlsv'})
+                 if unsupported_types :
+                      st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
+                 else:
+                    merge_button = st.button("Merge files")
+elif selected == "Ex-Merge":
+        uploaded_file_names = user_input_features()
+        if uploaded_file_names:
+            st.write("## Uploaded Files:")
+            files_df=pd.DataFrame(uploaded_file_names)
+            gd=GridOptionsBuilder.from_dataframe(files_df)
+            gd.configure_selection(selection_mode='multiple',use_checkbox=True)
+            gf=gd.build()
+
+            #building a table using aggrid 
+            g_t = AgGrid(files_df,height=250,gridOptions=gf,update_mode=GridUpdateMode.SELECTION_CHANGED)
+            st.write('###selected')
+            selected_row = g_t["selected_rows"]
+            st.dataframe(selected_row)
+
+        ## the conditional statements for the requirements
+            if len(uploaded_file_names) == 1:
+                 st.error("Merge is not possible")
+            else:
+                 uploaded_file_names = set (files_df['File type'])
+                 unsupported_types=set(files_df['File type']).intersection({'xls','ods','csv','pdf'})
                  if unsupported_types :
                       st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
                  else:
