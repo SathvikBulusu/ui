@@ -64,11 +64,11 @@ elif selected == "Merge":
             #building a table using aggrid 
             g_t = AgGrid(files_df,height=250,gridOptions=gf,update_mode=GridUpdateMode.SELECTION_CHANGED)
             st.write('###selected')
-            selected_row = g_t["selected rows"]
+            selected_row = g_t["selected_rows"]
             st.dataframe(selected_row)
 
         ## the conditional statements for the requirements
-            if len(uploaded_file_names) ==1:
+            if len(uploaded_file_names) == 1:
                  st.error("Merge is not possible")
             else:
                  uploaded_file_names = set (files_df['File type'])
