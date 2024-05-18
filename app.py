@@ -1,147 +1,143 @@
-import streamlit as st 
-import pandas as pd 
+import streamlit as st
+import pandas as pd
 import base64
-from streamlit_option_menu import option_menu
-from st_aggrid import AgGrid, GridUpdateMode
-from st_aggrid.grid_options_builder import GridOptionsBuilder
+import PyPDF2
 
 # Retrieve the maximum upload size from the configuration file
 max_upload_size_mb = st.get_option("server.maxUploadSize")
 
-##  nav bar ideas 
+# Function to merge CSV files
+def merge_csv_files(files):
+    dfs = [pd.read_csv(file) for file in files]
+    merged_df = pd.concat(dfs, ignore_index=True)
+    return merged_df
 
-selected = option_menu(
-        menu_title=None,
-        options=["Merge","Ex-Merge","Statistics"],
-        icons=["clipboard-data-fill","body-text","bar-chart-fill"],
-        menu_icon="cast",
-        default_index=0,
-        orientation="horizontal",
-    
-styles={
-        "container": {"padding": "0!important", "background-color": "#FF69B4"},
-        "icon": {"color": "purple", "font-size": "25px"}, 
-        "nav-link": {"font-size": "25px", "text-align": "left", "margin":"0px", "--hover-color": "#eee"},
-        "nav-link-selected": {"background-color": "pink"},
-    },
-)
+# Function to merge XLSX files
+def merge_xlsx_files(files):
+    dfs = [pd.read_excel(file, engine='openpyxl') for file in files]
+    merged_df = pd.concat(dfs, ignore_index=True)
+    return merged_df
 
-## function to the file uploader that i want only 6 files with only 10 mb 
-def user_input_features():
+# Function to merge PDF files
+def merge_pdf_files(files):
+    pdf_merger = PyPDF2.PdfMerger()
+    for file in files:
+        pdf_merger.append(file)
+    merged_pdf = pdf_merger.write('merged_file.pdf')
 
-    accept_file_types = ['csv', 'xls', 'xlsx','ods','pdf']
-    total_size_mb = 0  # Variable to track total size of uploaded files
+    # Return the merged PDF file
+    return merged_pdf
 
-    up_files = st.file_uploader("Upload up to 6 files", accept_multiple_files=True, type=['csv', 'xls', 'xlsx','ods','pdf'])
+# Function to merge CSV with Excel
+def merge_csv_excel(files):
+    # Merge CSV files
+    merged_csv = merge_csv_files(files)
 
-    uploaded_file_names = []  # List to store uploaded file names
+    # Merge Excel files
+    merged_excel = merge_xlsx_files(files)
 
-    if up_files is not None:
-        for up_file in up_files:
-            if up_file is not None:
-                filename = up_file.name
-                file_extension = filename.split('.')[-1].lower()
-                if file_extension not in accept_file_types:
-                    st.warning(f"File '{filename}' is not supported. Upload accepted file types: {', '.join(accept_file_types)}")
-                else:
-                    file_size_mb = len(up_file.getvalue()) / (1024 * 1024)  # Calculate file size in MB
-                    total_size_mb += file_size_mb  # Update total size
-                    if total_size_mb > max_upload_size_mb:
-                        st.warning(f"Maximum total size of uploaded files reached. You have exceeded {max_upload_size_mb} MB.")
-                        break
-                    uploaded_file_names.append({"Filename": filename, "File size (MB)": file_size_mb, "File type": file_extension})  # Store filename
+    # Combine CSV and Excel dataframes
+    merged_df = pd.concat([merged_csv, merged_excel], ignore_index=True)
+    return merged_df
 
-    return uploaded_file_names
+# Function to merge PDF with CSV
+def merge_pdf_csv(files):
+    # Merge PDF files
+    merged_pdf = merge_pdf_files(files)
 
+    # Read CSV files into a DataFrame
+    dfs = [pd.read_csv(file) for file in files if file.name.endswith('.csv')]
+    merged_csv = pd.concat(dfs, ignore_index=True)
 
-## statistical analysis after the files are merged and these are called upon / saved 
-if selected == "Statistics":
-        st.title(f"you have chosen to do {selected}")
+    # Convert PDF to DataFrame (placeholder)
+    # Implement this part if required
+    merged_pdf_df = pd.read_pdf(merged_pdf)
 
-## merge nav bar code 
+    # Combine PDF and CSV dataframes (placeholder)
+    # Implement this part if required
+    merged_df = pd.concat([merged_pdf_df, merged_csv], ignore_index=True)
+    return merged_csv
 
-elif selected == "Merge":
-        uploaded_file_names = user_input_features()
-        if uploaded_file_names:
-            st.write("## Uploaded Files:")
-            files_df=pd.DataFrame(uploaded_file_names)
-            gd=GridOptionsBuilder.from_dataframe(files_df)
-            gd.configure_selection(selection_mode='multiple',use_checkbox=True)
-            gf=gd.build()
+# Function to merge PDF with Excel
+def merge_pdf_excel(files):
+    # Merge PDF files
+    merged_pdf = merge_pdf_files(files)
 
-            #building a table using aggrid 
-            g_t = AgGrid(files_df,height=250,gridOptions=gf,update_mode=GridUpdateMode.SELECTION_CHANGED)
-            st.write('###selected')
-            selected_row = g_t["selected_rows"]
-            st.dataframe(selected_row)
+    # Read Excel files into a DataFrame
+    dfs = [pd.read_excel(file, engine='openpyxl') for file in files if file.name.endswith(('.xls', '.xlsx'))]
+    merged_excel = pd.concat(dfs, ignore_index=True)
 
-        ## the conditional statements for the requirements
-            if len(uploaded_file_names) == 1:
-                 st.error("Merge is not possible")
-            else:
-                 uploaded_file_names = set (files_df['File type'])
-                 unsupported_types=set(files_df['File type']).intersection({'xls','ods','xlsv'})
-                 if unsupported_types :
-                      st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
-                 else:
-                    merge_button = st.button("Merge files")
-                    if merge_button:
-                    # Perform merge
-                     merged_df = pd.concat([pd.read_excel(file) for file in selected_row['Filename']], ignore_index=True)
+    # Convert PDF to DataFrame (placeholder)
+    # Implement this part if required
+    # merged_pdf_df = pd.read_pdf(merged_pdf)
 
-                    # Display merged DataFrame
-                     st.write("## Merged Data:")
-                     st.dataframe(merged_df)
+    # Combine PDF and Excel dataframes (placeholder)
+    # Implement this part if required
+    # merged_df = pd.concat([merged_pdf_df, merged_excel], ignore_index=True)
+    return merged_excel
 
-                    # Provide option to download the merged file
-                     st.write("## Download Merged File:")
-                     csv = merged_df.to_csv(index=False).encode()
-                     b64 = base64.b64encode(csv.encode()).decode()
-                     href = f'<a href="data:file/csv;base64,{b64}" download="merged_file.csv">Download CSV File</a>'
-                     st.markdown(href, unsafe_allow_html=True)
+# Retrieve user uploaded files and perform merging
+def merge_files(uploaded_files):
+    filenames = [file.name for file in uploaded_files]
 
-## xlsv merge files nav bar
+    # Identify file types
+    file_types = set([filename.split('.')[-1].lower() for filename in filenames])
 
-elif selected == "Ex-Merge":
-        uploaded_file_names = user_input_features()
-        if uploaded_file_names:
-            st.write("## Uploaded Files:")
-            files_df=pd.DataFrame(uploaded_file_names)
-            gd=GridOptionsBuilder.from_dataframe(files_df)
-            gd.configure_selection(selection_mode='multiple',use_checkbox=True)
-            gf=gd.build()
+    # Perform merging based on file types
+    if len(file_types) == 1:
+        file_type = file_types.pop()
+        if file_type == 'csv':
+            merged_df = merge_csv_files(uploaded_files)
+        elif file_type in ('xls', 'xlsx'):
+            merged_df = merge_xlsx_files(uploaded_files)
+        elif file_type == 'pdf':
+            merged_df = merge_pdf_files(uploaded_files)
+        else:
+            st.error("Unsupported file type.")
+            merged_df = None
+    elif len(file_types) == 2:
+        if 'csv' in file_types and ('xls' in file_types or 'xlsx' in file_types):
+            merged_df = merge_csv_excel(uploaded_files)
+        elif 'pdf' in file_types and 'csv' in file_types:
+            merged_df = merge_pdf_csv(uploaded_files)
+        elif 'pdf' in file_types and ('xls' in file_types or 'xlsx' in file_types):
+            merged_df = merge_pdf_excel(uploaded_files)
+        else:
+            st.error("Unsupported combination of file types.")
+            merged_df = None
+    else:
+        st.error("Unsupported combination of file types.")
+        merged_df = None
 
-            #building a table using aggrid 
-            g_t = AgGrid(files_df,height=250,gridOptions=gf,update_mode=GridUpdateMode.SELECTION_CHANGED)
-            st.write('###selected')
-            selected_row = g_t["selected_rows"]
-            st.dataframe(selected_row)
+    return merged_df
 
-        ## the conditional statements for the requirements
-            if len(uploaded_file_names) == 1:
-                 st.error("Merge is not possible")
-            else:
-                 uploaded_file_names = set (files_df['File type'])
-                 unsupported_types=set(files_df['File type']).intersection({'xls','ods','csv','pdf'})
-                 if unsupported_types :
-                      st.warning(f"Merging is not supported for files cause {','.join(unsupported_types)}")
-                 else:
-                    merge_button = st.button("Merge files")
-                    if merge_button:
-                    # Perform merge
-                     merged_df = pd.concat([pd.read_excel(file) for file in selected_row['Filename']], ignore_index=True)
+# Main function to run Streamlit app
+def main():
+    st.title("File Merger App")
 
-                    # Display merged DataFrame
-                     st.write("## Merged Data:")
-                     st.dataframe(merged_df)
+    # Upload files
+    uploaded_files = st.file_uploader("Upload files to merge", accept_multiple_files=True)
 
-                    # Provide option to download the merged file
-                     st.write("## Download Merged File:")
-                     csv = merged_df.to_csv(index=False)
-                     b64 = base64.b64encode(csv.encode()).decode()
-                     href = f'<a href="data:file/csv;base64,{b64}" download="merged_file.csv">Download CSV File</a>'
-                     st.markdown(href, unsafe_allow_html=True)
-                
-             
+    # Perform merging if files uploaded
+    if uploaded_files:
+        st.write("## Uploaded Files:")
+        filenames = [file.name for file in uploaded_files]
+        st.write(filenames)
+        
+        # Merge files
+        merged_df = merge_files(uploaded_files)
 
-      
+        # Display merged data
+        if merged_df is not None:
+            st.write("## Merged Data:")
+            st.dataframe(merged_df)
+
+            # Provide download link for CSV
+            csv = merged_df.to_csv(index=False).encode()
+            b64 = base64.b64encode(csv).decode()
+            href = f'<a href="data:file/csv;base64,{b64}" download="merged_file.csv">Download Merged CSV File</a>'
+            st.markdown(href, unsafe_allow_html=True)
+
+# Run the main function
+if __name__ == "__main__":
+    main()
